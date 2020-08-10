@@ -180,7 +180,7 @@ def get_args():
                 args.total_num_scenes = 14
             elif "gibson" in args.task_config and \
                     "val" in args.split:
-                args.total_num_scenes = 1
+                args.total_num_scenes = 14
             else:
                 assert False, "Unknown task config, please specify" + \
                         " total_num_scenes"
@@ -195,7 +195,7 @@ def get_args():
                             /1024/1024/1024)
                 if i==0:
                     assert torch.cuda.get_device_properties(i).total_memory \
-                            /1024/1024/1024 > 10.0, "Insufficient GPU memory"
+                            /1024/1024/1024 > 1.0, "Insufficient GPU memory"
 
             num_processes_per_gpu = int(gpu_memory/1.4)
             num_processes_on_first_gpu = int((gpu_memory - 10.0)/1.4)
@@ -204,6 +204,8 @@ def get_args():
                 args.num_processes_on_first_gpu = num_processes_on_first_gpu
                 args.num_processes_per_gpu = 0
                 args.num_processes = num_processes_on_first_gpu
+                args.num_processes = 1
+                args.num_processes_on_first_gpu =1
             else:
                 total_threads = num_processes_per_gpu * (num_gpus - 1) \
                                 + num_processes_on_first_gpu

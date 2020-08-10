@@ -13,10 +13,10 @@ from PIL import Image
 from torch.nn import functional as F
 from torchvision import transforms
 
-if sys.platform == 'darwin':
-    matplotlib.use("tkagg")
-else:
-    matplotlib.use('Agg')
+# if sys.platform == 'darwin':
+#     matplotlib.use("tkagg")
+# else:
+#     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import habitat
@@ -70,9 +70,12 @@ class Exploration_Env(habitat.RLEnv):
         self.sensor_noise_left = \
                 pickle.load(open("noise_models/sensor_noise_left.pkl", 'rb'))
 
-        habitat.SimulatorActions.extend_action_space("NOISY_FORWARD")
-        habitat.SimulatorActions.extend_action_space("NOISY_RIGHT")
-        habitat.SimulatorActions.extend_action_space("NOISY_LEFT")
+        try:
+            habitat.SimulatorActions.extend_action_space("NOISY_FORWARD")
+            habitat.SimulatorActions.extend_action_space("NOISY_RIGHT")
+            habitat.SimulatorActions.extend_action_space("NOISY_LEFT")
+        except Exception as e:
+            pass
 
         config_env.defrost()
         config_env.SIMULATOR.ACTION_SPACE_CONFIG = \
@@ -97,6 +100,7 @@ class Exploration_Env(habitat.RLEnv):
                     transforms.Resize((args.frame_height, args.frame_width),
                                       interpolation = Image.NEAREST)])
         self.scene_name = None
+        self.map_obj = None
         self.maps_dict = {}
 
     def randomize_env(self):
@@ -582,11 +586,19 @@ class Exploration_Env(habitat.RLEnv):
         logger.error('Computing map for %s', self.scene_name)
 
         # Get map in habitat simulator coordinates
-        self.map_obj = HabitatMaps(self.habitat_env)
+        
+        if self.scene_name not in self.maps_dict.keys():
+            map_obj = HabitatMaps(self.habitat_env)
+            self.maps_dict[self.scene_name] = map_obj
+            
+        self.map_obj = self.maps_dict[self.scene_name]
+        
         if self.map_obj.size[0] < 1 or self.map_obj.size[1] < 1:
             logger.error("Invalid map: {}/{}".format(
                             self.scene_name, self.episode_no))
+            self.maps_dict[self.scene_name] = None
             return None
+        
 
         agent_y = self._env.sim.get_agent_state().position.tolist()[1]*100.
         sim_map = self.map_obj.get_map(agent_y, -50., 50.0)
